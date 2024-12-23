@@ -1,0 +1,13 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: msvc-bankaccounts
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/clients
+
+logging:
+  level:
+    root: INFO
