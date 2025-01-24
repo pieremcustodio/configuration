@@ -1,0 +1,101 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: api-gateway
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          secret: EsteEsUnSecretoMuySeguroConMasDe32Caracteres123
+
+  cloud:
+    gateway:
+      routes:
+        - id: msvc-clients
+          uri: lb://msvc-clients
+          predicates:
+            - Path=/**
+          filters:
+            - CircuitBreaker=clients
+            - name: CircuitBreaker
+              args:
+                name: clients
+                statusCode: 500
+
+        - id: msvc-bankaccounts
+          uri: lb://msvc-bankaccounts
+          predicates:
+            - Path=/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: bankaccounts
+                statusCode: 500
+            - name: CircuitBreaker
+              args:
+                name: bankaccounts
+                statusCode: 500
+
+        - id: msvc-credits
+          uri: lb://msvc-credits
+          predicates:
+            - Path=/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: credits
+                statusCode: 500
+            - name: CircuitBreaker
+              args:
+                name: credits
+                statusCode: 500
+
+      default-filters:
+        - name: DedupeResponseHeader
+          args:
+            strategy: RETAIN_FIRST
+            headers: Access-Control-Allow-Origin, Access-Control-Allow-Credentials
+
+  eureka:
+    client:
+      serviceUrl:
+        defaultZone: http://localhost:8761/eureka/
+      register-with-eureka: true
+      fetch-registry: true
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 6
+        failureRateThreshold: 50
+        waitDurationInOpenState: 20s
+        permittedNumberOfCallsInHalfOpenState: 4
+        slowCallDurationThreshold: 5s
+        slowCallRateThreshold: 50
+    instances:
+      cb-msvc-clients:
+        baseConfig: default
+      cb-msvc-bankaccounts:
+        baseConfig: default
+      cb-msvc-credits:
+        baseConfig: default
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 40s
+    instances:
+      tl-msvc-clients:
+        baseConfig: default
+      tl-msvc-bankaccounts:
+        baseConfig: default
+      tl-msvc-credits:
+        baseConfig: default
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    com.tuempresa.apigateway: DEBUG
